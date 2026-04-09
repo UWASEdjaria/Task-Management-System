@@ -1,83 +1,87 @@
-# Task Management System
+## Task Management System (Frontend)
 
-A full-stack task management web app built with Next.js, Prisma, and PostgreSQL. Includes user authentication with email OTP verification.
+A frontend-only task management web app built with Next.js 16, featuring a complete user authentication UI and a dashboard. All pages are interactive and validated with Zod, providing a high-fidelity prototype for a task management platform.
 
-## Tech Stack
+# Tech Stack
 
-- **Framework:** Next.js 16 (App Router, Turbopack)
-- **Database:** PostgreSQL via Prisma ORM
-- **Auth:** Email/password + OTP verification (Nodemailer)
-- **Forms:** React Hook Form + Zod validation
-- **Styling:** Tailwind CSS
+Framework: Next.js 16 (App Router, Turbopack)
 
-## Features
+Forms & Validation: React Hook Form + Zod
 
-- User sign up & login
-- Email OTP verification
-- Forgot / reset password flow
-- Resend OTP
+Styling: Tailwind CSS
 
-## Getting Started
+## State Management: React (useState, useEffect)
 
-### Prerequisites
+# Features
 
-- Node.js 18+
-- PostgreSQL database
-- SMTP credentials for email (Nodemailer)
+# 🔐 User Authentication UI
 
-### Setup
+Sign Up / Login: Interactive forms with real-time validation.
 
-1. Clone the repo and install dependencies:
+OTP Flow: Dedicated pages for Verify OTP and Resend OTP.
 
-```bash
-npm install
-```
+Password Recovery: Forgot Password and Reset Password layouts.
 
-2. Copy `.env` and fill in your values:
+# 📊 Dashboard UI
 
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/taskdb
-SMTP_HOST=...
-SMTP_USER=...
-SMTP_PASS=...
-```
+Task Overview: Clean layout for managing daily activities.
 
-3. Run database migrations:
+Placeholders: Visual status trackers and task list components.
 
-```bash
-npx prisma migrate dev
-```
+Responsive Design: Fully optimized for Mobile, Tablet, and Desktop.
 
-4. Start the dev server:
+# Project Structure
 
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
-| `npm run start` | Start production server |
-| `npm run lint` | Run ESLint |
-
-## Project Structure
-
-```
 src/
 ├── app/
-│   ├── api/auth/        # Auth API routes (login, signup, OTP, reset)
 │   ├── auth/            # Auth pages (login, signup, verify, forgot, resend)
-│   └── page.tsx         # Home / landing page
-├── components/          # Shared UI components
-├── hooks/               # Custom React hooks
+│   ├── dashboard/       # Dashboard pages and task layouts
+│   └── page.tsx         # Home / Landing page
+├── components/          # Shared UI components (Buttons, Inputs, Cards)
+├── hooks/               # Custom React hooks for UI logic
 └── lib/
-    ├── db.ts            # Prisma client
-    └── validations.ts   # Zod schemas
-prisma/
-└── schema.prisma        # Database schema
-```
+    └── validations.ts   # Zod schemas for form safety
+
+
+# 🚀 Getting Started
+
+# Prerequisites
+
+Node.js 18+ installed on your machine.
+
+# Setup Instructions
+
+Clone the repository and install dependencies:
+
+npm install
+
+
+Start the development server:
+
+npm run dev
+
+
+# View the application:
+Open http://localhost:3000 in your browser to see the results.
+
+# 🛠 Scripts
+
+# Command
+
+# Description
+
+npm run dev
+
+# Start development server 
+
+npm run build
+
+# Build the application for production
+
+npm run start
+
+# Start the production server
+
+npm run lint
+
+Run ESLint to check for code quality

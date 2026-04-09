@@ -4,7 +4,7 @@ import React, {useState ,FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
-import { signupSchema } from '@/lib/validations'
+import { signupSchema } from '../../../../'
 
 function Signup() {
   
