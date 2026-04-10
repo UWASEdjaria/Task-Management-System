@@ -4,7 +4,7 @@ import React, {useState ,FormEvent} from 'react'
 import {useRouter} from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
-import { signupSchema } from '../../../../'
+import { signupSchema } from '../../../lib/validations'
 
 function Signup() {
   
@@ -25,24 +25,31 @@ function Signup() {
     const confirmPassword = formData.get('confirmPassword') as string
 
     // safeParse() runs all Zod rules at once — replaces all the if statements above
-    const result = signupSchema.safeParse({ email, password, confirmPassword })
+   const result = signupSchema.safeParse({ 
+      fullName: name, 
+      email, 
+      password, 
+      confirmPassword 
+    })
     if (!result.success) {
       setError(result.error.issues[0].message)
       return
     }
 
     try {
-      const res = await fetch('/api/auth/signup', {
+      const res = await fetch('http://localhost:5000/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password ,fullName:name}),
       })
       const data = await res.json()
       if (!res.ok) {
-        if (res.status === 409) setAccountExists(true)
-        setError(data.error || 'Something went wrong.')
-        return
+        if (res.status === 409 || data.error?.includes('exists')) {
+       setAccountExists(true);
       }
+       setError(data.error || 'Something went wrong.');
+       return;
+    }
       router.push('/')
     } catch {
       setError('Network error. Please try again.')
