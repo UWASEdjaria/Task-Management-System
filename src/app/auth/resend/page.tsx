@@ -3,9 +3,15 @@ import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
+import { apiFetch } from "../../../lib/apiFetch"
+
 
 export default function ResendPage() {
+  const router = useRouter();
   const [seconds, setSeconds] = useState(0)
+  const [iserror, setIsError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('')
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
@@ -18,24 +24,40 @@ export default function ResendPage() {
   }, [seconds])
 
   const handleResend = async () => {
-    if (seconds > 0) return
+    if (seconds > 0 || !email) return;
+    setLoading(true);
+    setMessage('');
+    setIsError(false);
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await apiFetch('/auth/send-otp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: { email },
       })
-      const data = await res.json()
-      if (!res.ok) {
-        setMessage(data.error || 'Failed to resend.')
+
+      if (!res.success) {
+        setMessage(res.message || 'Failed to resend code.')
+        setIsError(true)
         return
       }
+
+      // Success logic
       setMessage('A new code has been sent to your inbox!')
       setSeconds(60)
+      
+      // Clear message after 5 seconds
       setTimeout(() => setMessage(''), 5000)
+
+      // Redirect to verify page after 3 seconds
+      setTimeout(() => {
+        router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
+      }, 3000);
+
     } catch {
       setMessage('Network error. Please try again.')
+      setIsError(true)
+    } finally {
+      setLoading(false);
     }
   }
   return (
@@ -76,7 +98,7 @@ export default function ResendPage() {
             disabled={seconds > 0}
             className="mt-2 text-sm text-gray-600 hover:underline disabled:opacity-50"
           >
-            {seconds > 0 ? `Resend in ${seconds}s` : 'Resend code'}
+           {loading ? 'Sending...' : seconds > 0 ? `Resend in ${seconds}s` : 'Request a new code'}
           </button>
         </div>
 
