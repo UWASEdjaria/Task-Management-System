@@ -20,14 +20,19 @@ export default function Verify() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/verify-otp", {
+     const res = await fetch("http://localhost:5000/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || "Invalid code."); return; }
-      router.push("/dashboard");
+
+     localStorage.setItem("token", data.token);
+     localStorage.setItem("user", JSON.stringify(data.data));
+
+     router.push("/dashboard");
+     
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -36,7 +41,7 @@ export default function Verify() {
   };
 
   const handleResend = async () => {
-    await fetch("/api/auth/send-otp", {
+    await fetch("http://localhost:5000/api/auth/send-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email }),
@@ -86,7 +91,11 @@ export default function Verify() {
           </form>
           <p className="mt-4 text-sm text-gray-500">
             Didn&apos;t get the verification code?{" "}
-            <button type="button" onClick={handleResend} className="text-gray-600 hover:underline">Resend</button>
+            
+         <Link 
+            href={`/auth/resend?email=${encodeURIComponent(email)}`} 
+            className="text-gray-600 hover:underline">Resend
+         </Link>
           </p>
           <div className="max-w-5xl w-full mb-4">
             <Link href="/" className="text-gray-600 hover:text-black text-sm">← Back Home</Link>

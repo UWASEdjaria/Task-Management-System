@@ -3,9 +3,13 @@ import Link from 'next/link'
 import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 export default function ResendPage() {
+  const router = useRouter();
   const [seconds, setSeconds] = useState(0)
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('')
   const searchParams = useSearchParams()
   const email = searchParams.get('email') || ''
@@ -18,24 +22,37 @@ export default function ResendPage() {
   }, [seconds])
 
   const handleResend = async () => {
-    if (seconds > 0) return
+    if (seconds > 0 || !email) return;
+    setLoading(true);
+    setMessage('');
+    setError('');
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch('http://localhost:5000/api/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       })
+
       const data = await res.json()
+
       if (!res.ok) {
-        setMessage(data.error || 'Failed to resend.')
+        setMessage(data.error || 'Failed to resend code.')
         return
       }
       setMessage('A new code has been sent to your inbox!')
       setSeconds(60)
       setTimeout(() => setMessage(''), 5000)
+
+      setTimeout(() => {
+        router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
+      }, 3000);
+
     } catch {
       setMessage('Network error. Please try again.')
+    }
+    finally {
+      setLoading(false);
     }
   }
   return (
@@ -76,7 +93,7 @@ export default function ResendPage() {
             disabled={seconds > 0}
             className="mt-2 text-sm text-gray-600 hover:underline disabled:opacity-50"
           >
-            {seconds > 0 ? `Resend in ${seconds}s` : 'Resend code'}
+           {loading ? 'Sending...' : seconds > 0 ? `Resend in ${seconds}s` : 'Request a new code'}
           </button>
         </div>
 
