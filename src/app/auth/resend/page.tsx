@@ -59,6 +59,9 @@ export default function ResendPage() {
     } finally {
       setLoading(false);
     }
+    finally {
+      setLoading(false);
+    }
   }
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-1 font-sans text-gray-900">

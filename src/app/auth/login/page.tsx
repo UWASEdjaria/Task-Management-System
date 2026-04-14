@@ -54,7 +54,7 @@ function Login() {
     } finally {
       setLoading(false);
     }
-  }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center bg-white">
       <div className="max-w-md w-full bg-white p-8">
