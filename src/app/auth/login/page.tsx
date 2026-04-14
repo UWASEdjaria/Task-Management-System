@@ -5,6 +5,7 @@ import React, { useState, FormEvent } from 'react'
 import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
 import { loginSchema } from '@/lib/validations'
+import { apiFetch } from "@/lib/apiFetch";
 
 function Login() {
   const router = useRouter()
@@ -13,7 +14,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
-    // 1. Prevent default behavior immediately to stop URL leakage
+    //  Prevent default behavior immediately to stop URL leakage
     e.preventDefault()
     setError('')
     setLoading(true)
@@ -22,7 +23,7 @@ function Login() {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
-    // 2. Validate input
+    //  Validate input
     const validationResult = loginSchema.safeParse({ email, password })
     if (!validationResult.success) {
       setError(validationResult.error.issues[0].message)
@@ -31,26 +32,21 @@ function Login() {
     }
 
     try {
-      // 3. Perform Login
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      // call the login api
+      const res = await apiFetch("/auth/login", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: { email, password },
       })
 
-      const data = await res.json()
-
-     
-      if (!res.ok) {
-        setError(data.error || 'Invalid email or password.')
-        setLoading(false)
-        return
-      }
-      await fetch('http://localhost:5000/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+    if (!res.success) {
+        setError(res.message || 'Invalid email or password.');
+        return; // Stop here if login failed
+    }
+      await apiFetch("/auth/send-otp", {
+        method: "POST",
+        body: { email },
       });
+      //If Login is successful, send the OTP
      router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
 
     } catch (error) {
@@ -141,5 +137,4 @@ function Login() {
     </div>
   )
 }
-
-export default Login
+export default Login;

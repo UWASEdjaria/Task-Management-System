@@ -5,6 +5,7 @@ import {useRouter} from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react';
 import Image from 'next/image';
 import { signupSchema } from '../../../lib/validations'
+import { apiFetch } from "@/lib/apiFetch";
 
 function Signup() {
   
@@ -37,22 +38,24 @@ function Signup() {
     }
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/signup', {
+      const res = await apiFetch("/auth/signup", {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password ,fullName:name}),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        if (res.status === 409 || data.error?.includes('exists')) {
-       setAccountExists(true);
+        body: { email, password, fullName: name },
+      });
+      if (!res.success) {
+        // Keeps your existing "Account Exists" check logic
+        if (res.message?.includes('exists')) {
+          setAccountExists(true);
+        }
+        setError(res.message || 'Something went wrong.');
+        return;
       }
-       setError(data.error || 'Something went wrong.');
-       return;
-    }
-      router.push('/')
-    } catch {
-      setError('Network error. Please try again.')
+
+      // Success: redirect to home/login
+      router.push('/');
+
+    } catch (error) {
+      setError('Network error. Please try again.');
     }
   }
   return (
@@ -178,4 +181,4 @@ function Signup() {
   )
 }
 
-export default Signup
+export default Signup;

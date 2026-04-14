@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import {apiFetch} from "../../../lib/apiFetch"
 
 export default function Verify() {
   const [otp, setOtp] = useState("");
@@ -20,33 +21,38 @@ export default function Verify() {
 
     setLoading(true);
     try {
-     const res = await fetch("http://localhost:5000/api/auth/verify-otp", {
+     const res = await apiFetch("/auth/verify-otp", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
+        body: { email, otp }
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error || "Invalid code."); return; }
+      if (!res.success) { 
+        setError(res.message || "Invalid code."); 
+        return; 
+      }
 
-     localStorage.setItem("token", data.token);
-     localStorage.setItem("user", JSON.stringify(data.data));
+      // Store token and user data from the successful response
+      if (res.token) localStorage.setItem("token", res.token);
+      if (res.data) localStorage.setItem("user", JSON.stringify(res.data));
 
-     router.push("/dashboard");
-     
+      router.push("/dashboard");
+      
     } catch {
       setError("Network error. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
   const handleResend = async () => {
-    await fetch("http://localhost:5000/api/auth/send-otp", {
+  const res = await apiFetch("/auth/send-otp", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    setError("A new code has been sent to your email.");
+      body: { email },
+   });
+
+    if (res.success) {
+      setError("A new code has been sent to your email.");
+    } else {
+      setError(res.message || "Failed to resend code.");
+    }
   };
 
   const handleInputChange = (value: string) => {
