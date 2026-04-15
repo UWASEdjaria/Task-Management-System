@@ -1,18 +1,30 @@
 import { LogOut } from "lucide-react"; 
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 
 export const LogoutButton = () => {
   const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    // 1. Clear local storage
+    // Start loading state
+    setIsLoggingOut(true);
+   
+    try{
+       // 1. Clear local storage
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
     // 2. Redirect to login page
     router.push("/auth/login");
-  };
 
+} catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
   return (
     <button
       onClick={handleLogout}
