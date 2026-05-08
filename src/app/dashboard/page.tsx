@@ -1,186 +1,283 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import Sidebar from "@/components/sidebar"
-import StatCards from "@/components/statCard"
-import { 
-  Search, 
-  Bell, 
-  Settings, 
-  ChevronDown, 
-  Check, 
-  LogOut 
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { apiFetch } from "../../lib/apiFetch"
+import {
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Clock, Filter, ListFilter, AlertCircle, CalendarClock, Flame, TrendingUp
 } from "lucide-react"
+import { Task, TaskStatus, TaskPriority, ApiTaskResponse } from "../../types/task"
+import { PRIORITY_STYLES } from "@/lib/constants"
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-const TEAMS = ["Engineering", "Design", "Marketing", "Product"]
-const FIRST_DAY = 2
-const TOTAL_DAYS = 30
-const TODAY = 3
-
-const getInitials = (name: string) => {
-  if (!name) return "??"
-  const parts = name.trim().split(" ")
-  return parts.length >= 2 
-    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() 
-    : parts[0][0].toUpperCase()
-}
+const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const [currentUser, setCurrentUser] = useState({ fullName: "", email: "" })
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [selectedTeam, setSelectedTeam] = useState("Engineering")
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false) 
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      try {
-        setCurrentUser(JSON.parse(storedUser))
-      } catch (error) {
-        console.error("Auth state synchronization failed:", error)
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [viewDate, setViewDate] = useState<Date>(new Date())
+  const [selectedDate, setSelectedDate] = useState<string | null>(new Date().toDateString())
+  const [filterPriority, setFilterPriority] = useState<string>("all")
+  const [filterStatus, setFilterStatus] = useState<string>("all")
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      const matchesDate = new Date(task.dueDate).toDateString() === selectedDate
+      const matchesPriority = filterPriority === "all" || task.priority === filterPriority
+      const matchesStatus = filterStatus === "all" || task.status === filterStatus
+      return matchesDate && matchesPriority && matchesStatus
+    })
+  }, [tasks, selectedDate, filterPriority, filterStatus])
+
+  const stats = useMemo(() => { //Calculates dashboard statistics.
+
+    const today = new Date() 
+    today.setHours(0, 0, 0, 0)
+
+    const overdue = tasks.filter(t => {
+
+      const due = new Date(t.dueDate)
+      due.setHours(0, 0, 0, 0)
+
+      return due < today && t.status !== TaskStatus.COMPLETED
+    }).length
+
+    const dueToday = tasks.filter(t =>
+      new Date(t.dueDate).toDateString() === new Date().toDateString()
+    ).length
+
+    const highPriority = tasks.filter(t =>
+      t.priority === TaskPriority.HIGH && t.status !== TaskStatus.COMPLETED
+    ).length
+
+    const completionRate = tasks.length > 0
+      ? Math.round((tasks.filter(t => t.status === TaskStatus.COMPLETED).length / tasks.length) * 100)
+      : 0
+    return { overdue, dueToday, highPriority, completionRate }
+  }, [tasks])
+
+  const calendarData = useMemo(() => {
+    const year = viewDate.getFullYear()
+    const month = viewDate.getMonth()
+    const firstDayOfMonth = new Date(year, month, 1).getDay()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const monthName = viewDate.toLocaleString('default', { month: 'long' })//Convert number month into text
+
+    return { firstDayOfMonth, daysInMonth, monthName, year }
+  }, [viewDate])
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) return
+      const result = await apiFetch<ApiTaskResponse[]>("/task", {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      if (result.success && result.data) {
+        const normalizedTasks: Task[] = result.data.map((task: ApiTaskResponse) => ({
+          id: task.id || task._id || String(Math.random()),
+          title: task.title,
+          description: task.description,
+          status: task.status as TaskStatus,
+          priority: task.priority as TaskPriority,
+          dueDate: task.dueDate,
+          createdAt: task.createdAt
+        }))
+        setTasks(normalizedTasks)
       }
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error)
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    router.push("/auth/login")
-  }
+  useEffect(() => { fetchTasks() }, [fetchTasks])
+
+  const changeMonth = (offset: number) => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + offset, 1))
+  const changeYear = (offset: number) => setViewDate(new Date(viewDate.getFullYear() + offset, viewDate.getMonth(), 1))
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
+    <div className="w-full p-4 flex flex-col gap-4">
 
-      <div className="flex-1 lg:ml-64 p-6 lg:p-10 pt-20 lg:pt-10">
-        <header className="flex items-center justify-between mb-10">
-          <div className="relative">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-1">
-              Workspace
-            </p>
-            <button
-              onClick={() => setIsWorkspaceOpen(!isWorkspaceOpen)}
-              className="flex items-center gap-2 text-3xl font-bold text-[#1e293b] focus:outline-none"
-            >
-              {selectedTeam}
-              <ChevronDown 
-                size={20} 
-                className={`text-gray-400 transition-transform duration-200 ${isWorkspaceOpen ? "rotate-180" : ""}`} 
-              />
-            </button>
+      {/* Stat Cards — 4 in a row, compact height */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
-            {isWorkspaceOpen && (
-              <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 overflow-hidden">
-                {TEAMS.map((team) => (
-                  <button
-                    key={team}
-                    onClick={() => {
-                      setSelectedTeam(team)
-                      setIsWorkspaceOpen(false)
-                    }}
-                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className={selectedTeam === team ? "font-bold text-[#1e293b]" : ""}>
-                      {team}
-                    </span>
-                    {selectedTeam === team && <Check size={16} className="text-[#1e293b]" />}
-                  </button>
-                ))}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3 hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+          <div className="p-2 bg-red-50 rounded-lg shrink-0">
+            <AlertCircle size={15} className="text-red-500" />
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Overdue</p>
+            <p className="text-xl font-bold text-slate-800 leading-tight">{stats.overdue}</p>
+            <p className="text-[9px] text-gray-400">Past due</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3 hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+          <div className="p-2 bg-amber-50 rounded-lg shrink-0">
+            <CalendarClock size={15} className="text-amber-500" />
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Due Today</p>
+            <p className="text-xl font-bold text-slate-800 leading-tight">{stats.dueToday}</p>
+            <p className="text-[9px] text-gray-400">Today</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3 hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+          <div className="p-2 bg-orange-50 rounded-lg shrink-0">
+            <Flame size={15} className="text-orange-500" />
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">High Priority</p>
+            <p className="text-xl font-bold text-slate-800 leading-tight">{stats.highPriority}</p>
+            <p className="text-[9px] text-gray-400">Urgent</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex items-center gap-3 hover:-translate-y-1 hover:shadow-md transition-all duration-200">
+          <div className="p-2 bg-emerald-50 rounded-lg shrink-0">
+            <TrendingUp size={15} className="text-emerald-500" />
+          </div>
+          <div>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Completion</p>
+            <p className="text-xl font-bold text-slate-800 leading-tight">{stats.completionRate}%</p>
+            <p className="text-[9px] text-gray-400">Overall</p>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Calendar + Sidebar */}
+      <div className="flex flex-col lg:flex-row gap-4">
+
+        {/* Calendar */}
+        <section className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+          {/* Calendar header row */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100">
+            <h3 className="text-sm font-bold text-gray-900">
+              {calendarData.monthName} {calendarData.year}
+            </h3>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                <button aria-label="Previous Year" onClick={() => changeYear(-1)} className="p-1.5 hover:bg-gray-50"><ChevronsLeft size={14} className="text-slate-500" /></button>
+                <button aria-label="Next Year" onClick={() => changeYear(1)} className="p-1.5 hover:bg-gray-50"><ChevronsRight size={14} className="text-slate-500" /></button>
               </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="bg-gray-100 rounded-xl py-2.5 pl-10 pr-4 text-sm w-64 focus:ring-2 focus:ring-gray-200 outline-none transition-all" 
-              />
-            </div>
-            
-            <Bell size={20} className="text-gray-400 cursor-pointer hover:text-[#1e293b] transition-colors" />
-            <Settings size={20} className="text-gray-400 cursor-pointer hover:text-[#1e293b] transition-colors" />
-            
-            <div className="relative">
-              <button 
-                onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="w-10 h-10 bg-[#1e293b] rounded-full flex items-center justify-center text-white text-xs font-bold ring-4 ring-white shadow-sm hover:opacity-90 transition-all"
-              >
-                {getInitials(currentUser.fullName)}
-              </button>
-
-              {isProfileOpen && (
-                <div className="absolute top-full right-0 mt-3 w-64 bg-white border border-gray-100 rounded-2xl shadow-2xl z-50 p-2 animate-in fade-in zoom-in duration-200">
-                  <div className="px-4 py-4 bg-gray-50 rounded-xl mb-2">
-                    <p className="text-sm font-bold text-gray-900 truncate">
-                      {currentUser.fullName || "Guest User"}
-                    </p>
-                    <p className="text-[11px] text-gray-500 truncate">
-                      {currentUser.email || "No email linked"}
-                    </p>
-                  </div>
-                  <button 
-                    onClick={handleLogout} 
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 rounded-xl transition-colors font-semibold group"
-                  >
-                    <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" /> 
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <StatCards />
-
-        <section className="bg-white rounded-xl border border-gray-100 shadow-sm mt-10 p-8">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <h3 className="text-2xl font-bold text-[#1e293b]">April 2026</h3>
-              <p className="text-xs text-gray-400 font-medium mt-1">
-                Schedule overview • {selectedTeam}
-              </p>
-            </div>
-            <div className="flex bg-gray-100 p-1 rounded-xl">
-              <button className="px-5 py-2 text-xs font-bold bg-white shadow-sm rounded-lg">Month</button>
-              <button className="px-5 py-2 text-xs font-bold text-gray-500 hover:text-gray-700">Week</button>
-              <button className="px-5 py-2 text-xs font-bold text-gray-500 hover:text-gray-700">List</button>
+              <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                <button aria-label="Previous Month" onClick={() => changeMonth(-1)} className="p-1.5 hover:bg-gray-50 border-r border-gray-200"><ChevronLeft size={14} className="text-slate-700" /></button>
+                <button onClick={() => { setViewDate(new Date()); setSelectedDate(new Date().toDateString()) }} className="px-3 py-1.5 text-[11px] font-medium hover:bg-gray-50">Today</button>
+                <button aria-label="Next Month" onClick={() => changeMonth(1)} className="p-1.5 hover:bg-gray-50 border-l border-gray-200"><ChevronRight size={14} className="text-slate-700" /></button>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 mb-6">
+          {/* Filters row */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100">
+            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+              <Filter size={11} className="text-gray-400 mr-1.5" />
+              <select value={filterPriority} onChange={(e) => setFilterPriority(e.target.value)} aria-label="Filter by priority" className="bg-transparent text-[11px] font-bold text-gray-600 outline-none cursor-pointer">
+                <option value="all">All Priority</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
+              <ListFilter size={11} className="text-gray-400 mr-1.5" />
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} aria-label="Filter by status" className="bg-transparent text-[11px] font-bold text-gray-600 outline-none cursor-pointer">
+                <option value="all">All Status</option>
+                <option value="todo">To Do</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Day names */}
+          <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
             {DAYS.map(day => (
-              <p key={day} className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                {day}
-              </p>
+              <p key={day} className="py-2 text-center text-[10px] font-bold text-gray-400">{day}</p>
             ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
-            {Array.from({ length: FIRST_DAY }).map((_, i) => <div key={`empty-${i}`} />)}
-            {Array.from({ length: TOTAL_DAYS }).map((_, i) => {
+          {/* Day cells */}
+          <div className="grid grid-cols-7">
+            {Array.from({ length: calendarData.firstDayOfMonth }).map((_, i) => (
+              <div key={`empty-${i}`} className="h-12 border-r border-b border-gray-100 bg-gray-50/30" />
+            ))}
+            {Array.from({ length: calendarData.daysInMonth }).map((_, i) => {
               const dayNum = i + 1
-              const isToday = dayNum === TODAY
+              const currentIterationDate = new Date(calendarData.year, viewDate.getMonth(), dayNum)
+              const dateString = currentIterationDate.toDateString()
+              const isToday = dateString === new Date().toDateString()
+              const isSelected = selectedDate === dateString
+              const hasTask = tasks.some((t: Task) => new Date(t.dueDate).toDateString() === dateString)
+
               return (
-                <div 
-                  key={dayNum} 
-                  className={`h-12 flex items-center justify-center rounded-xl text-sm font-bold transition-all cursor-pointer
-                  ${isToday 
-                    ? "bg-[#1e293b] text-white shadow-lg scale-105" 
-                    : "text-gray-600 hover:bg-gray-50"}`}
+                <button
+                  key={dayNum}
+                  onClick={() => setSelectedDate(dateString)}
+                  className={`h-12 px-1 border-r border-b border-gray-100 flex flex-col items-end justify-between py-1 transition-all
+                    ${isSelected ? "bg-gray-50" : "bg-white hover:bg-gray-50/50"}
+                    ${isToday && !isSelected ? "ring-2 ring-inset ring-[#1e293b]" : ""}`}
                 >
-                  {dayNum}
-                </div>
+                  <span className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
+                    ${isToday ? "bg-slate-900 text-white" : "text-gray-500"}
+                    ${isSelected && !isToday ? "ring-1 ring-gray-300" : ""}`}
+                  >
+                    {dayNum}
+                  </span>
+                  {hasTask && <div className="w-full h-1 bg-slate-200 rounded-full opacity-70" />}
+                </button>
               )
             })}
           </div>
         </section>
+
+        {/* Sidebar */}
+        <aside className="w-full lg:w-72">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
+
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                {selectedDate === new Date().toDateString() ? "Today's Tasks" : "Schedule"}
+              </h4>
+              <span className="text-[11px] font-bold text-slate-400">
+                {selectedDate?.split(' ').slice(1, 3).join(' ')}
+              </span>
+            </div>
+
+            <div className="space-y-2">
+              {filteredTasks.length > 0 ? (
+                filteredTasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className={`px-3 py-2 rounded-lg border border-gray-100 bg-white border-l-4 hover:-translate-y-1 hover:shadow-md transition-all duration-200 ${
+                      task.priority === "high" ? "border-l-blue-400" :
+                      task.priority === "medium" ? "border-l-green-400" : "border-l-orange-400"
+                    }`}
+                  >
+                    <h5 className="text-xs font-semibold text-gray-800 leading-tight">{task.title}</h5>
+                    <div className="mt-1 flex items-center justify-between">
+                      <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${PRIORITY_STYLES[task.priority]}`}>
+                        {task.priority}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-300 uppercase">
+                        {task.status.replace("-", " ")}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
+                  <Clock size={16} className="mb-1" />
+                  <p className="text-[11px] font-medium">No tasks scheduled.</p>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </aside>
+
       </div>
     </div>
   )
