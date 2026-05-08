@@ -1,7 +1,9 @@
+import { ApiResponse } from "../types/api";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
  
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const apiFetch = async (endpoint: string, options: any = {}) => {
+export const apiFetch = async <T> (endpoint: string, options: any = {}) : Promise<ApiResponse<T>> => {
   const { method = "GET", headers, body, ...rest } = options;
 
   const config = {
@@ -26,7 +28,8 @@ export const apiFetch = async (endpoint: string, options: any = {}) => {
       console.error("Expected JSON, but received HTML. Preview:", textError.slice(0, 200));
       return { 
         success: false, 
-        message: "Server returned an invalid response. Check the URL or Port." 
+        message: "Server returned an invalid response. Check the URL or Port." ,
+        data: null as T
       };
     }
 
@@ -35,7 +38,8 @@ export const apiFetch = async (endpoint: string, options: any = {}) => {
     if (!response.ok) {
       return { 
         success: false, 
-        message: data.message || "An error occurred" 
+        message: data.message || "An error occurred" ,
+        data: data.data || null
       };
     }
 
@@ -45,7 +49,8 @@ export const apiFetch = async (endpoint: string, options: any = {}) => {
     console.error("Network or API Error:", error);
     return { 
       success: false, 
-      message: "Network error. Please ensure the backend server is running." 
+      message: "Network error. Please ensure the backend server is running." ,
+      data: null as T
     };
   }
 };
