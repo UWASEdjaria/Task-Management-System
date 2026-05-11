@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { API_ENDPOINTS } from "@/lib/constants";
-import { Task } from "@/types/task";
+import { Task, TaskPriority } from "@/types/task";
 import TaskHeader from "@/components/Tasks/TaskHeader";
 import TaskSidebar from "@/components/Tasks/TaskSidebar";
 import SubtaskManager from "@/components/Tasks/SubtaskManager";
 import CommentSection from "@/components/Tasks/CommentSection";
+import { TaskStatus, TaskPriority as MyTaskPriority } from "@/types/task";
 
 export default function TaskDetailsPage() {
   const { id } = useParams();
@@ -54,25 +55,30 @@ export default function TaskDetailsPage() {
     setIsSaving(true);
     try {
       const token = localStorage.getItem("token");
+      const { createdAt, updatedAt, id: originalId, ...payload } = editedTask;
       const res = await fetch(`${API_ENDPOINTS.TASKS}/${id}`, {
         method: "PATCH",
         headers: { 
           "Content-Type": "application/json", 
           "Authorization": `Bearer ${token}` 
         },
-        body: JSON.stringify(editedTask)
+        body: JSON.stringify(payload)
       });
+      const result: { data: Task } = await res.json();
       if (res.ok) {
-        setTask(editedTask);
+        setTask(result.data);
+        setEditedTask(result.data);
         setIsEditing(false);
       }
     } finally {
       setIsSaving(false);
     }
   };
+  
+ 
 
   if (!task) return <div className="p-10 text-center text-[10px] font-black uppercase text-slate-300">Loading...</div>;
-
+  console.log("Raw Time from Server:", task.updatedAt);
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <TaskHeader 
@@ -91,9 +97,41 @@ export default function TaskDetailsPage() {
         <main className="flex-1 overflow-y-auto p-5 lg:p-8 space-y-6">
           <div className="max-w-3xl">
             <div className="flex gap-1.5 mb-4">
-              <span className="bg-slate-900 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase">{task.status}</span>
-              <span className="bg-slate-50 text-slate-400 border border-slate-100 px-2 py-0.5 rounded-md text-[8px] font-black uppercase">{task.priority}</span>
-            </div>
+              {isEditing ? (
+                <>  
+                {/* STATUS SELECT */}
+            <select
+              title="Change Task Status"
+              className="bg-slate-900 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase outline-none cursor-pointer"
+              value={editedTask?.status}
+              onChange={(e) => handleUpdateField('status', e.target.value as TaskStatus)}
+              > 
+              <option value={TaskStatus.TODO}>Todo</option>
+              <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
+              <option value={TaskStatus.COMPLETED}>Done</option>
+              </select>
+
+             {/* PRIORITY SELECT */}
+             <select 
+              title="Change Task Priority"
+              className="bg-slate-50 text-slate-600 border border-slate-200 px-2 py-0.5 rounded-md text-[8px] font-black uppercase outline-none cursor-pointer"
+              value={editedTask?.priority}
+              onChange={(e) => handleUpdateField('priority', e.target.value as MyTaskPriority)}
+              >
+             <option value={TaskPriority.LOW}>Low</option>
+             <option value={TaskPriority.MEDIUM}>Medium</option>
+             <option value={TaskPriority.HIGH}>High</option>
+           </select>
+
+                </>
+                ) : (
+                  <>  
+                   <span className="bg-slate-900 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase">{task.status}</span>
+                  <span className="bg-slate-50 text-slate-400 border border-slate-100 px-2 py-0.5 rounded-md text-[8px] font-black uppercase">{task.priority}</span>
+               
+                  </>
+              )}
+               </div>
 
             <div className="space-y-1">
               <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Title</p>
@@ -136,6 +174,37 @@ export default function TaskDetailsPage() {
             isEditing={isEditing} 
             onUpdate={handleUpdateField} 
           />
+
+            <div className="pt-6 mt-6 border-t border-slate-200 space-y-4">
+             <div className="flex justify-between items-center">
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Created</p>
+                <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                 {task.createdAt ? new Date(task.createdAt).toLocaleString('en-GB',
+                   { day: '2-digit',
+                     month: 'short',
+                     hour: '2-digit', 
+                     minute: '2-digit',
+                     hour12: true,
+                     year: 'numeric' }) 
+                     : "---"}
+                </span>
+               </div>
+
+             <div className="flex justify-between items-center">
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Last updated</p>
+              <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">
+                {task.updatedAt ? new Date(task.updatedAt).toLocaleString('en-GB', 
+                  {day: '2-digit', 
+                   month: 'short', 
+                   year: 'numeric',
+                   hour: '2-digit',
+                   minute: '2-digit',
+                   hour12: true }) 
+                   : "---"}
+              </span>
+            </div>
+           </div>
+          
         </aside>
       </div>
     </div>

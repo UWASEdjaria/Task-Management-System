@@ -7,12 +7,14 @@ export interface Task {
   priority: TaskPriority;
   createdAt?: string;
   dueDate: string;
+  updatedAt: string;
   duration?: number;
   subtasks?: Subtask[];
   
 };
 export enum TaskStatus {
   TODO = "todo",
+  PENDING = "pending",
   IN_PROGRESS = "in-progress",
   COMPLETED = "completed"
 }
@@ -71,7 +73,7 @@ export interface TaskHeaderProps {
 export interface SidebarProps {
   task: Task;
   isEditing: boolean;
-  onUpdate: (field: keyof Task, value: string) => void;
+  onUpdate: <K extends keyof Task>(field: K, value: Task[K]) => void;
 }
 export interface SubtaskManagerProps {
   initialSubtasks: Subtask[];
