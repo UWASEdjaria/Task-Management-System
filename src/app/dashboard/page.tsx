@@ -69,7 +69,7 @@ export default function DashboardPage() {
     try {
       const token = localStorage.getItem("token")
       if (!token) return
-      const result = await apiFetch<ApiTaskResponse[]>("/task", {
+      const result = await apiFetch<ApiTaskResponse[]>("/tasks", {
         headers: { "Authorization": `Bearer ${token}` }
       })
       if (result.success && result.data) {
