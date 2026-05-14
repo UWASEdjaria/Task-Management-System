@@ -10,7 +10,9 @@ export const COLORS = {
 };
 
 export const API_ENDPOINTS = {
-  TASKS: `${API_BASE_URL}/task`,
+  TASKS: `${API_BASE_URL}/tasks`,
+  COMMENTS: `${API_BASE_URL}/comments`,
+  SUBTASK: `${API_BASE_URL}/subtasks`,
   AUTH: `${API_BASE_URL}/auth`,
 };
 export const PRIORITY_STYLES = {

@@ -102,7 +102,12 @@ export default function Verify() {
               type="text"
               inputMode="numeric"
               placeholder="Enter 6-digit code"
-              onChange={handleInputChange} // Overriding default onChange to filter numbers
+              onChange={(e) => {
+                 const value = e.target.value.replace(/[^0-9]/g, "");
+                 if (value.length <= 6) {
+                 setValue("otp", value);
+                 } 
+               }}
               className={`w-full px-4 py-2 text-center border rounded-lg bg-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 ${
                 errors.otp ? "border-red-500" : "border-transparent"
               }`}

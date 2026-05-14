@@ -5,3 +5,11 @@ export interface ApiResponse<T> {
     token?: string;
 
 }
+export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+export interface FetchOptions {
+    method?: HttpMethod;
+    headers?: Record<string, string>;
+    body?: object; // Use 'object' instead of 'any' or 'unknown'
+    cache?: RequestCache;
+}

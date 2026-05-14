@@ -59,7 +59,7 @@ export interface TaskDetailModalProps {
 
 export interface Subtask {
   id: string;
-  text: string;
+  title: string;
   done: boolean;
 }
 export interface TaskHeaderProps {
@@ -86,7 +86,13 @@ export interface CommentUser {
 
 export interface Comment {
   id: string;
-  user: CommentUser;
+  taskId: string;
+  content: string;
+  createdAt: string;
+  user?:{
+       initials?: string;
+       fullName: string;
+       }
   text: string;
   time: string;
 }

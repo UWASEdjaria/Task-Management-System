@@ -22,7 +22,7 @@ export default function TasksPage() {
       const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
       if (!token) return
 
-      const result = await apiFetch<ApiTaskResponse[]>("/task", {
+      const result = await apiFetch<ApiTaskResponse[]>("/tasks", {
         headers: { "Authorization": `Bearer ${token}` }
       })
 

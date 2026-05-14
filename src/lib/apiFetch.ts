@@ -1,11 +1,12 @@
-import { ApiResponse } from "../types/api";
+import { ApiResponse, FetchOptions } from "../types/api";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
  
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const apiFetch = async <T> (endpoint: string, options: any = {}) : Promise<ApiResponse<T>> => {
+
+export const apiFetch = async <T> (endpoint: string, options: FetchOptions = {}) : Promise<ApiResponse<T>> => {
   const { method = "GET", headers, body, ...rest } = options;
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem("token") : undefined;
   const config = {
     method,
     headers: {
@@ -17,8 +18,7 @@ export const apiFetch = async <T> (endpoint: string, options: any = {}) : Promis
   };
 
   try {
-    console.log(`${BASE_URL}${endpoint}`)
-    console.log(`${BASE_URL}`)
+   console.log(`Fetching: ${BASE_URL}${endpoint}`);
     const response = await fetch(`${BASE_URL}${endpoint}`, config);
    
     // Check if the response is actually JSON
@@ -39,11 +39,14 @@ export const apiFetch = async <T> (endpoint: string, options: any = {}) : Promis
       return { 
         success: false, 
         message: data.message || "An error occurred" ,
-        data: data.data || null
+        data: data.data || (data as T)
       };
     }
 
-    return { success: true, ...data };
+    return { 
+      success: true, ...data,
+      message: data.message || "Success",
+      data: data.data || data};
 
   } catch (error) {
     console.error("Network or API Error:", error);
